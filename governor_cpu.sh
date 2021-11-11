@@ -137,8 +137,10 @@ do
 
          mkdir -v -p "$SAVE_DIR/$b/$g/Run_$i"
          echo "Copying results to chosen dir: $SAVE_DIR/$b/$g/Run_$i"
-         cp -v "sensors.data" "runtime.data"  "$SAVE_DIR/$b/$g/Run_$i"
-         rm -v "sensors.data" "runtime.data"   
+         cp -v "runtime.data"  "$SAVE_DIR/$b/$g/Run_$i"
+         rm -v "runtime.data"   
+         # cp -v "sensors.data" "runtime.data"  "$SAVE_DIR/$b/$g/Run_$i"
+         # rm -v "sensors.data" "runtime.data"   
       done
    done
 done

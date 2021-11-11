@@ -3,8 +3,8 @@
 #KrNikov 2014
 
 #Global params for ODROID-XU3
-BIG_MAX_CORE=7
-BIG_MIN_CORE=4
+BIG_MAX_CORE=3
+BIG_MIN_CORE=0
 BIG_MAX_F=2000000
 BIG_MIN_F=200000
 
@@ -13,7 +13,7 @@ LITTLE_MIN_CORE=0
 LITTLE_MAX_F=1400000
 LITTLE_MIN_F=200000
 
-            
+export PARSECDIR=/home/reginaldojunior/Documentos/UFscar/parsec-2.1
 if [[ "$#" -eq 0 ]]; then
   echo "This program requires inputs. Type -h for help." >&2
   exit 1
@@ -304,7 +304,7 @@ if [[ $(( $(echo "$CORE_RUN" | tr -cd ',' | wc -c) + 1 )) < $CORE_CHOSEN ]]; the
 else
 	echo "cset $CORE_RUN"
 	# cset shield -c "$CORE_RUN" -k on --force
-	cset shield -c 0-4  -k on --force
+	cset shield -c 0-1 -k on --force ## para funciona tive que modificar o arquivo /usr/lin/python3/dist-packages/cpuset/commands/shield.py
 fi
 
 echo "hotplug"${CORE_HOTPLUG[@]}
@@ -317,7 +317,7 @@ done
 
 echo "===Sanity check.==="
 
-cpufreq-set -d 2000000 -u 2000000 -c 4 -g performance
+cpufreq-set -d 2000000 -u 2000000 -c 1 -g performance ## cpu 3 não existe?
 cpufreq-set -d 1400000 -u 1400000 -c 0 -g performance
 
 cpufreq-info
@@ -326,23 +326,22 @@ cset shield
 
 #Turn on fan on max power to avoid throttling on 4 cores.
 #Start manual mode
-echo 0 > "/sys/devices/platform/pwm-fan/hwmon/hwmon0/automatic"
+# echo 0 > "/sys/devices/platform/pwm-fan/hwmon/hwmon0/automatic"
 #Put fan on MAX RPM
-echo 255 > "/sys/devices/platform/pwm-fan/hwmon/hwmon0/pwm1"
+# echo 255 > "/sys/devices/platform/pwm-fan/hwmon/hwmon0/pwm1"
 
-
-echo 'setting cpu temperature limits ...'
-# standard: 60, 70, 80, 115, 85, 90, 95
-for i in 0 1 2 3
-do
-   echo -n 120000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_0_temp"
-   echo -n 120000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_1_temp"
-   echo -n 120000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_2_temp"
-   #echo -n 150000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_3_temp"#critical
-   echo -n 120000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_4_temp"
-   echo -n 120000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_5_temp"
-   echo -n 120000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_6_temp"   
-done
+# echo 'setting cpu temperature limits ...'
+# # standard: 60, 70, 80, 115, 85, 90, 95
+# for i in 0 1 2 3
+# do
+#    echo -n 120000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_0_temp"
+#    echo -n 120000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_1_temp"
+#    echo -n 120000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_2_temp"
+#    #echo -n 150000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_3_temp"#critical
+#    echo -n 120000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_4_temp"
+#    echo -n 120000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_5_temp"
+#    echo -n 120000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_6_temp"   
+# done
 
 echo "CORE_CHOSEN $CORE_CHOSEN CORE_RUN $CORE_RUN"
 
@@ -354,7 +353,7 @@ do
 	do
 		#Check for double core
 	    if [[ -n $BIG_CHOSEN && -n $LITTLE_CHOSEN ]]; then
-			cpufreq-set -d "$FREQ_SELECT" -u "$FREQ_SELECT" -c 4 
+			# cpufreq-set -d "$FREQ_SELECT" -u "$FREQ_SELECT" -c 3 
 			echo "Core frequency (big): $FREQ_SELECT""Mhz"
 			for FREQ2_SELECT in $CORE2_FREQ
 			do
@@ -365,9 +364,9 @@ do
 				#I can input the number of enabled LITTLE and big cores for sensor script, but for now I don't care about individual temperature so I'm just using 1 1 to save space on the output files. freq/volt/curr/power are all agreated per-cluster so 1 1 enables me to get that inforamtion from the sensors for both clusters. 
 				#The only benefit of adding the involved cores would be to give me per-core temperature information, but those are normalized by the big fan anyway.
 				#Technically CORE_CHOSEN represents number of big cores, size of CORE_COLLECT represent number of LITTLE and I can specify those for the sensors collection in the future if I need to.
-				./sensors 1 1 "$SAMPLE_NS" > "sensors.data" &
-				PID_sensors=$!
-				disown
+				# ./sensors 1 1 "$SAMPLE_NS" > "sensors.data" &
+				# PID_sensors=$!
+				# disown
 				
 				#Run collections scripts in parallel to the benchmarks
 				#taskset -c $CORE_COLLECT ./get_cpu_usage.sh -c $CORE_RUN -t $SAMPLE_NS > "usage.data" &
@@ -384,7 +383,7 @@ do
 			
 				#after benchmarks have run kill sensor collect and smartpower (if chosen)
 				sleep 1
-				kill $PID_sensors > /dev/null
+				# kill $PID_sensors > /dev/null
 				#kill $PID_usage > /dev/null
 				sleep 1
 				echo "Data collection completed successfully"
@@ -393,8 +392,10 @@ do
 				if [[ -n $SAVE_DIR ]]; then
 					mkdir -v -p "$SAVE_DIR/Run_$i/$FREQ2_SELECT""_$FREQ_SELECT"
 					echo "Copying results to chosen dir: $SAVE_DIR/Run_$i/$FREQ2_SELECT""_$FREQ_SELECT"
-					cp -v "sensors.data" "benchmarks.data" "$SAVE_DIR/Run_$i/$FREQ2_SELECT""_$FREQ_SELECT"
-					rm -v "sensors.data" "benchmarks.data"
+					cp -v "benchmarks.data" "$SAVE_DIR/Run_$i/$FREQ2_SELECT""_$FREQ_SELECT"
+					rm -v "benchmarks.data"
+					# cp -v "sensors.data" "benchmarks.data" "$SAVE_DIR/Run_$i/$FREQ2_SELECT""_$FREQ_SELECT"
+					# rm -v "sensors.data" "benchmarks.data"
 					#if we have event collection enabled, then copy those too
 					if [[ -n $EVENTS_LIST_FILE ]]; then
 						cp -v "events_raw.data" "$SAVE_DIR/Run_$i/$FREQ2_SELECT""_$FREQ_SELECT"
@@ -403,8 +404,10 @@ do
 				else
 					mkdir -v -p "Run_$i/$FREQ2_SELECT""_$FREQ_SELECT"
 					echo "Copying results to dir: Run_$i/$FREQ2_SELECT""_$FREQ_SELECT"
-					cp -v "sensors.data" "benchmarks.data" "Run_$i/$FREQ2_SELECT""_$FREQ_SELECT"
-					rm -v "sensors.data" "benchmarks.data"
+					# cp -v "sensors.data" "benchmarks.data" "Run_$i/$FREQ2_SELECT""_$FREQ_SELECT"
+					# rm -v "sensors.data" "benchmarks.data"
+					cp -v "benchmarks.data" "Run_$i/$FREQ2_SELECT""_$FREQ_SELECT"
+					rm -v "benchmarks.data"
 					if [[ -n $EVENTS_LIST_FILE ]]; then
 						cp -v "events_raw.data" "Run_$i/$FREQ2_SELECT""_$FREQ_SELECT"
 						rm -v "events_raw.data"
@@ -440,14 +443,14 @@ do
 			kill $PID_sensors > /dev/null
 			#kill $PID_usage > /dev/null
 			sleep 1
-					echo "Data collection completed successfully"
+			echo "Data collection completed successfully"
 
 			#Organize results -> copy them in the save dir that is specified or put them in the PWD
 			if [[ -n $SAVE_DIR ]]; then
 				mkdir -v -p "$SAVE_DIR/Run_$i/$FREQ_SELECT"
 				echo "Copying results to chosen dir: $SAVE_DIR/Run_$i/$FREQ_SELECT"
-				cp -v "sensors.data" "benchmarks.data" "$SAVE_DIR/Run_$i/$FREQ_SELECT"
-				rm -v "sensors.data" "benchmarks.data"
+				# cp -v "sensors.data" "benchmarks.data" "$SAVE_DIR/Run_$i/$FREQ_SELECT"
+				# rm -v "sensors.data" "benchmarks.data"
 				#if we have event collection enabled, then copy those too
 				if [[ -n $EVENTS_LIST_FILE ]]; then
 					cp -v "events_raw.data" "$SAVE_DIR/Run_$i/$FREQ_SELECT"
@@ -456,8 +459,11 @@ do
 			else
 				mkdir -v -p "Run_$i/$FREQ_SELECT"
 				echo "Copying results to dir: Run_$i/$FREQ_SELECT"
-				cp -v "sensors.data" "benchmarks.data" "Run_$i/$FREQ_SELECT"
-				rm -v "sensors.data" "benchmarks.data"
+				cp -v "benchmarks.data" "Run_$i/$FREQ_SELECT"
+				rm -v "benchmarks.data"
+				
+				# cp -v "sensors.data" "benchmarks.data" "Run_$i/$FREQ_SELECT"
+				# rm -v "sensors.data" "benchmarks.data"
 				if [[ -n $EVENTS_LIST_FILE ]]; then
 					cp -v "events_raw.data" "Run_$i/$FREQ_SELECT"
 					rm -v "events_raw.data"
@@ -476,8 +482,8 @@ do
 	echo "i $i"
 	echo 1 > "/sys/devices/system/cpu/cpu$i/online"
 done
-#sudo cpufreq-set -g ondemand
-cpufreq-set -d 2000000 -u 2000000 -c 4 -g performance
+# #sudo cpufreq-set -g ondemand
+cpufreq-set -d 2000000 -u 2000000 -c 1 -g performance
 cpufreq-set -d 1400000 -u 1400000 -c 0 -g performance
 
 echo "===Sanity check.==="
@@ -485,21 +491,21 @@ cpufreq-info
 echo "==="
 cset shield
 
-#Put back fan on automatic mode
-echo 1 > "/sys/devices/platform/pwm-fan/hwmon/hwmon0/pwm1"
+# #Put back fan on automatic mode
+# echo 1 > "/sys/devices/platform/pwm-fan/hwmon/hwmon0/pwm1"
 
-echo "return normal thermal temp values"
-# standard: 60, 70, 80, 115, 85, 90, 95
-for i in 0 1 2 3
-do
-   echo -n 60000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_0_temp"
-   echo -n 70000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_1_temp"
-   echo -n 80000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_2_temp"
-   #echo -n 150000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_3_temp"#critical
-   echo -n 85000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_4_temp"
-   echo -n 90000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_5_temp"
-   echo -n 95000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_6_temp"
-done
+# echo "return normal thermal temp values"
+# # standard: 60, 70, 80, 115, 85, 90, 95
+# for i in 0 1 2 3
+# do
+#    echo -n 60000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_0_temp"
+#    echo -n 70000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_1_temp"
+#    echo -n 80000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_2_temp"
+#    #echo -n 150000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_3_temp"#critical
+#    echo -n 85000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_4_temp"
+#    echo -n 90000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_5_temp"
+#    echo -n 95000 > "/sys/devices/virtual/thermal/thermal_zone$i/trip_point_6_temp"
+# done
 
 echo "Script End! :)"
 exit
