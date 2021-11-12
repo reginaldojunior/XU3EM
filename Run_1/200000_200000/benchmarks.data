@@ -12,8 +12,8 @@ Num of Options: 10000000
 Num of Runs: 100
 Size of data: 400000000
 
-real	1m20,663s
-user	1m55,464s
-sys	0m1,300s
+real	0m57,954s
+user	1m16,386s
+sys	0m0,878s
 [PARSEC] [----------    End of output    ----------]
 [PARSEC] Done.

@@ -29,7 +29,7 @@ do
             echo "-b [NUMBER] -> Turn on collection for big cores [benchmarks and monitors]. Specify number of cores to involve."
             echo "-L [NUMBER] -> Turn on collection for LITTLE cores [benchmarks and monitors]. Specify number of cores to involve."
             echo "-f [FREQEUNCIES] -> Specify frequencies in Hz, separated by commas. Range is determined by core type. First core type."
-		echo "-q [FREQEUNCIES] -> Specify frequencies in Hz, separated by commas. Range is determined by core type. Second core (if selected)."
+			echo "-q [FREQEUNCIES] -> Specify frequencies in Hz, separated by commas. Range is determined by core type. Second core (if selected)."
             echo "-s [DIRECTORY] -> Specify a save directory for the results of the different runs. If flag is not specified program uses current directory"
             echo "-x [DIRECTORY] -> Specify the benchmark executable to be run. If multiple benchmarks are to be ran, put them all in a script and set that."
             echo "-e [DIRECTORY] -> Specify the events to be collected. Event labels must be on line 1, separated by commas. Event RAW identifiers must be sepcified on line 2, separated by commas."
@@ -290,11 +290,11 @@ do
 			fi
 		fi	
 	else
-                if [[ -z "$CORE_COLLECT" ]]; then 
-                        CORE_COLLECT="${COREs[$i]}"
-                else    
-                        [[ $(( $(echo "$CORE_COLLECT" | tr -cd ',' | wc -c) + 1 )) < $CORE_CHOSEN ]] && CORE_COLLECT+=",${COREs[$i]}"
-                fi
+		if [[ -z "$CORE_COLLECT" ]]; then 
+			CORE_COLLECT="${COREs[$i]}"
+		else    
+			[[ $(( $(echo "$CORE_COLLECT" | tr -cd ',' | wc -c) + 1 )) < $CORE_CHOSEN ]] && CORE_COLLECT+=",${COREs[$i]}"
+		fi
 	fi
 done
 
@@ -302,22 +302,29 @@ if [[ $(( $(echo "$CORE_RUN" | tr -cd ',' | wc -c) + 1 )) < $CORE_CHOSEN ]]; the
 	echo -e "Selected number of run COREs more than what the environment provides. Please check total number of enabled COREs on the system." >&2
 	exit 1
 else
+	cset shield --reset --force
 	echo "cset $CORE_RUN"
-	# cset shield -c "$CORE_RUN" -k on --force
-	cset shield -c 0-1 -k on --force ## para funciona tive que modificar o arquivo /usr/lin/python3/dist-packages/cpuset/commands/shield.py
+	echo "stop all dockers"
+	docker stop $(docker ps)
+	echo "set docker cpuset empty"
+	echo > /sys/fs/cgroup/cpuset/docker/cpuset.cpus
+
+	echo "starting cpu container"
+	cset shield -c "$CORE_RUN" -k on --force
 fi
 
-echo "hotplug"${CORE_HOTPLUG[@]}
-echo "--Turning off unwanted cores to enable directed cluster sensor readings"
-for i in ${CORE_HOTPLUG//,/ }
-do
-	echo "i $i"
-	echo 0 > "/sys/devices/system/cpu/cpu$i/online"
-done
+# reativar com o sensor
+# echo "hotplug"${CORE_HOTPLUG[@]}
+# echo "--Turning off unwanted cores to enable directed cluster sensor readings"
+# for i in ${CORE_HOTPLUG//,/ }
+# do
+# 	echo "i $i"
+# 	echo 0 > "/sys/devices/system/cpu/cpu$i/online"
+# done
 
 echo "===Sanity check.==="
 
-cpufreq-set -d 2000000 -u 2000000 -c 1 -g performance ## cpu 3 não existe?
+cpufreq-set -d 2000000 -u 2000000 -c 3 -g performance
 cpufreq-set -d 1400000 -u 1400000 -c 0 -g performance
 
 cpufreq-info
@@ -353,7 +360,7 @@ do
 	do
 		#Check for double core
 	    if [[ -n $BIG_CHOSEN && -n $LITTLE_CHOSEN ]]; then
-			# cpufreq-set -d "$FREQ_SELECT" -u "$FREQ_SELECT" -c 3 
+			cpufreq-set -d "$FREQ_SELECT" -u "$FREQ_SELECT" -c 3
 			echo "Core frequency (big): $FREQ_SELECT""Mhz"
 			for FREQ2_SELECT in $CORE2_FREQ
 			do
@@ -482,8 +489,9 @@ do
 	echo "i $i"
 	echo 1 > "/sys/devices/system/cpu/cpu$i/online"
 done
-# #sudo cpufreq-set -g ondemand
-cpufreq-set -d 2000000 -u 2000000 -c 1 -g performance
+
+#sudo cpufreq-set -g ondemand
+cpufreq-set -d 2000000 -u 2000000 -c 3 -g performance
 cpufreq-set -d 1400000 -u 1400000 -c 0 -g performance
 
 echo "===Sanity check.==="

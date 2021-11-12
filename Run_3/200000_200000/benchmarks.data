@@ -1,0 +1,19 @@
+[PARSEC] Benchmarks to run:  blackscholes
+
+[PARSEC] [========== Running benchmark blackscholes ==========]
+[PARSEC] Deleting old run directory.
+[PARSEC] Setting up run directory.
+[PARSEC] Unpacking benchmark input 'native'.
+in_10M.txt
+[PARSEC] Running 'time /home/reginaldojunior/Documentos/UFscar/parsec-2.1/pkgs/apps/blackscholes/inst/amd64-linux.gcc-pthreads/bin/blackscholes 4 in_10M.txt prices.txt':
+[PARSEC] [---------- Beginning of output ----------]
+PARSEC Benchmark Suite Version 2.1
+Num of Options: 10000000
+Num of Runs: 100
+Size of data: 400000000
+
+real	0m59,469s
+user	1m15,625s
+sys	0m0,674s
+[PARSEC] [----------    End of output    ----------]
+[PARSEC] Done.
